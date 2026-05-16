@@ -1,7 +1,599 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+<meta charset="UTF-8<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Boyfriend Report Card</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --paper: #FAF7F2;
+    --ink: #1C1C1C;
+    --faded: #8B7D6B;
+    --red: #C0392B;
+    --green: #2D6A4F;
+    --accent: #D4A853;
+    --line: #D9CFC2;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--line) 27px, var(--line) 28px);
+    background-attachment: fixed;
+  }
+
+  .page-wrapper { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+
+  .header { text-align: center; margin-bottom: 48px; }
+  .header::before { content: ''; display: block; width: 60px; height: 3px; background: var(--ink); margin: 0 auto 16px; }
+  .header h1 { font-family: 'Playfair Display', serif; font-size: clamp(28px, 5vw, 48px); font-weight: 700; letter-spacing: -1px; line-height: 1.1; }
+  .header .subtitle { font-family: 'Courier Prime', monospace; font-style: italic; color: var(--faded); font-size: 13px; margin-top: 8px; letter-spacing: 1px; }
+  .header::after { content: ''; display: block; width: 60px; height: 3px; background: var(--ink); margin: 16px auto 0; }
+
+  .sync-bar { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 1px; color: var(--faded); }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line); transition: background 0.3s; flex-shrink: 0; }
+  .sync-dot.syncing { background: var(--accent); animation: pulse 1s infinite; }
+  .sync-dot.synced { background: var(--green); }
+  .sync-dot.error { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .score-hero { background: var(--ink); color: var(--cream); border-radius: 4px; padding: 36px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 24px; }
+  .score-total-label { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.6; margin-bottom: 4px; }
+  .score-total-number { font-family: 'Playfair Display', serif; font-size: clamp(48px, 8vw, 80px); font-weight: 700; line-height: 1; }
+  .score-total-number.positive { color: #7EC8A4; }
+  .score-total-number.negative { color: #E07070; }
+  .score-breakdown { display: flex; gap: 32px; flex-wrap: wrap; }
+  .score-mini { text-align: center; }
+  .score-mini-val { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; }
+  .score-mini-val.plus { color: #7EC8A4; }
+  .score-mini-val.minus { color: #E07070; }
+  .score-mini-label { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.5; margin-top: 2px; }
+
+  .countdown-bar { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+  .countdown-label { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--faded); }
+  .countdown-units { display: flex; gap: 20px; align-items: center; }
+  .countdown-unit { text-align: center; }
+  .countdown-num { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; line-height: 1; display: block; }
+  .countdown-unit-label { font-family: 'Courier Prime', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--faded); margin-top: 2px; }
+  .countdown-sep { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--line); margin-bottom: 12px; }
+
+  .entry-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 600px) { .entry-columns { grid-template-columns: 1fr; } .score-hero { flex-direction: column; } }
+
+  .entry-card { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 24px; position: relative; overflow: hidden; }
+  .entry-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+  .entry-card.plus::before { background: var(--green); }
+  .entry-card.minus::before { background: var(--red); }
+  .entry-card-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .entry-card-title .icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
+  .entry-card.plus .icon { background: var(--green); }
+  .entry-card.minus .icon { background: var(--red); }
+  .entry-card textarea { width: 100%; border: 1px solid var(--line); border-radius: 3px; background: var(--cream); padding: 10px 12px; font-family: 'Courier Prime', monospace; font-size: 13px; color: var(--ink); resize: vertical; min-height: 72px; outline: none; margin-bottom: 12px; transition: border-color 0.2s; line-height: 28px; }
+  .entry-card textarea:focus { border-color: var(--faded); }
+  .score-buttons { display: flex; gap: 8px; margin-bottom: 12px; }
+  .score-btn { flex: 1; padding: 10px; border: 1.5px solid var(--line); border-radius: 3px; background: transparent; font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.15s; color: var(--ink); }
+  .entry-card.plus .score-btn:hover, .entry-card.plus .score-btn.selected { background: var(--green); border-color: var(--green); color: white; }
+  .entry-card.minus .score-btn:hover, .entry-card.minus .score-btn.selected { background: var(--red); border-color: var(--red); color: white; }
+  .submit-btn { width: 100%; padding: 10px; border: none; border-radius: 3px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+  .entry-card.plus .submit-btn { background: var(--green); color: white; }
+  .entry-card.minus .submit-btn { background: var(--red); color: white; }
+  .submit-btn:hover:not(:disabled) { opacity: 0.85; }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 600px) { .stats-row { grid-template-columns: 1fr; } }
+  .stat-card { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 20px 24px; }
+  .stat-card-title { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--faded); margin-bottom: 12px; }
+  .freq-grid { display: flex; flex-direction: column; gap: 8px; }
+  .freq-row { display: flex; align-items: center; gap: 10px; }
+  .freq-label { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; width: 20px; flex-shrink: 0; text-align: center; }
+  .freq-bar-track { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .freq-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  .freq-row.plus .freq-bar-fill { background: var(--green); }
+  .freq-row.minus .freq-bar-fill { background: var(--red); }
+  .freq-count { font-family: 'Courier Prime', monospace; font-size: 12px; color: var(--faded); min-width: 24px; text-align: right; }
+
+  .chart-card { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 24px; margin-bottom: 24px; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .card-subtitle { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--faded); margin-bottom: 20px; }
+  .chart-container { position: relative; height: 200px; }
+
+  .quote-card { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 24px; margin-bottom: 24px; }
+  .quote-input-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .quote-input-row input { flex: 1; min-width: 200px; border: 1px solid var(--line); border-radius: 3px; background: var(--cream); padding: 10px 14px; font-family: 'Courier Prime', monospace; font-size: 13px; color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .quote-input-row input:focus { border-color: var(--faded); }
+  .quote-input-row input::placeholder { color: var(--faded); }
+  .quote-add-btn { padding: 10px 20px; background: var(--ink); color: var(--cream); border: none; border-radius: 3px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
+  .quote-add-btn:hover:not(:disabled) { opacity: 0.75; }
+  .quote-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .quotes-list { display: flex; flex-direction: column; gap: 10px; }
+  .quote-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; background: var(--cream); border-left: 3px solid var(--accent); border-radius: 0 3px 3px 0; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  .quote-text { flex: 1; font-family: 'Playfair Display', serif; font-style: italic; font-size: 14px; line-height: 1.6; }
+  .quote-meta { font-family: 'Courier Prime', monospace; font-size: 10px; color: var(--faded); letter-spacing: 1px; margin-top: 4px; }
+  .quote-delete { background: none; border: none; cursor: pointer; color: var(--faded); font-size: 16px; padding: 0 2px; transition: color 0.2s; line-height: 1; flex-shrink: 0; }
+  .quote-delete:hover { color: var(--red); }
+
+  .log-card { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 24px; margin-bottom: 24px; }
+  .log-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+  .log-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; border-radius: 3px; background: var(--cream); animation: fadeIn 0.3s ease; }
+  .log-score { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; min-width: 36px; text-align: center; }
+  .log-score.plus { color: var(--green); }
+  .log-score.minus { color: var(--red); }
+  .log-reason { flex: 1; font-family: 'Courier Prime', monospace; font-size: 12px; line-height: 1.5; }
+  .log-date { font-family: 'Courier Prime', monospace; font-size: 10px; color: var(--faded); letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
+  .log-delete { background: none; border: none; cursor: pointer; color: var(--faded); font-size: 14px; padding: 0; transition: color 0.2s; flex-shrink: 0; }
+  .log-delete:hover { color: var(--red); }
+
+  .empty-state { text-align: center; padding: 32px; font-family: 'Courier Prime', monospace; font-style: italic; color: var(--faded); font-size: 13px; }
+
+  .log-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .log-edit { background: none; border: none; cursor: pointer; color: var(--faded); font-size: 13px; padding: 0 2px; transition: color 0.2s; }
+  .log-edit:hover { color: var(--accent); }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(28,28,28,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; padding: 20px;
+  }
+  .modal-backdrop.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--paper); border-radius: 4px; padding: 28px;
+    width: 100%; max-width: 440px; border-top: 4px solid var(--accent);
+    transform: translateY(12px); transition: transform 0.2s;
+  }
+  .modal-backdrop.open .modal { transform: translateY(0); }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-label { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--faded); margin-bottom: 6px; display: block; }
+  .modal-field input, .modal-field textarea { width: 100%; border: 1px solid var(--line); border-radius: 3px; background: var(--cream); padding: 9px 12px; font-family: 'Courier Prime', monospace; font-size: 13px; color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .modal-field input:focus, .modal-field textarea:focus { border-color: var(--faded); }
+  .modal-field textarea { resize: vertical; min-height: 64px; line-height: 1.6; }
+  .modal-score-btns { display: flex; gap: 8px; }
+  .modal-score-btn { flex: 1; padding: 8px; border: 1.5px solid var(--line); border-radius: 3px; background: transparent; font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s; color: var(--ink); }
+  .modal-score-btn.sel-plus { background: var(--green); border-color: var(--green); color: white; }
+  .modal-score-btn.sel-minus { background: var(--red); border-color: var(--red); color: white; }
+  .modal-score-btn:hover { opacity: 0.8; }
+  .modal-footer { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-save { flex: 1; padding: 10px; background: var(--ink); color: var(--cream); border: none; border-radius: 3px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: opacity 0.2s; }
+  .modal-save:hover:not(:disabled) { opacity: 0.75; }
+  .modal-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  .modal-cancel { padding: 10px 18px; background: transparent; color: var(--faded); border: 1px solid var(--line); border-radius: 3px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+  .modal-cancel:hover { border-color: var(--faded); color: var(--ink); }
+
+  .footer { text-align: center; padding: 20px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 1px; color: var(--faded); }
+
+  .toast { position: fixed; bottom: 32px; right: 32px; background: var(--ink); color: var(--cream); padding: 12px 20px; border-radius: 3px; font-family: 'Courier Prime', monospace; font-size: 12px; letter-spacing: 1px; opacity: 0; transform: translateY(8px); transition: all 0.3s ease; pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <header class="header">
+    <h1>The Boyfriend<br>Report Card</h1>
+    <p class="subtitle">an ongoing evaluation — est. 2026</p>
+  </header>
+
+  <div class="sync-bar">
+    <div class="sync-dot syncing" id="syncDot"></div>
+    <span id="syncLabel">連線中...</span>
+  </div>
+
+  <div class="score-hero">
+    <div>
+      <div class="score-total-label">Total Score</div>
+      <div class="score-total-number" id="totalScore">—</div>
+    </div>
+    <div class="score-breakdown">
+      <div class="score-mini"><div class="score-mini-val plus" id="totalPlus">+0</div><div class="score-mini-label">Points Earned</div></div>
+      <div class="score-mini"><div class="score-mini-val minus" id="totalMinus">−0</div><div class="score-mini-label">Points Lost</div></div>
+      <div class="score-mini"><div class="score-mini-val" style="color:var(--accent)" id="entryCount">0</div><div class="score-mini-label">Entries</div></div>
+    </div>
+  </div>
+
+  <div class="countdown-bar">
+    <div class="countdown-label">⏳ Countdown to Dec 31, 2026</div>
+    <div class="countdown-units">
+      <div class="countdown-unit"><span class="countdown-num" id="cdDays">—</span><div class="countdown-unit-label">Days</div></div>
+      <div class="countdown-sep">:</div>
+      <div class="countdown-unit"><span class="countdown-num" id="cdHours">—</span><div class="countdown-unit-label">Hours</div></div>
+      <div class="countdown-sep">:</div>
+      <div class="countdown-unit"><span class="countdown-num" id="cdMins">—</span><div class="countdown-unit-label">Mins</div></div>
+      <div class="countdown-sep">:</div>
+      <div class="countdown-unit"><span class="countdown-num" id="cdSecs">—</span><div class="countdown-unit-label">Secs</div></div>
+    </div>
+  </div>
+
+  <div class="entry-columns">
+    <div class="entry-card plus">
+      <div class="entry-card-title"><div class="icon">+</div>加分紀錄</div>
+      <textarea id="plusReason" placeholder="他做了什麼好事？"></textarea>
+      <div class="score-buttons" id="plusBtns">
+        <button class="score-btn" onclick="selectScore('plus',1,this)">+1</button>
+        <button class="score-btn" onclick="selectScore('plus',2,this)">+2</button>
+        <button class="score-btn" onclick="selectScore('plus',3,this)">+3</button>
+      </div>
+      <button class="submit-btn" id="plusSubmit" onclick="submitEntry('plus')">Record ↑</button>
+    </div>
+    <div class="entry-card minus">
+      <div class="entry-card-title"><div class="icon">−</div>扣分紀錄</div>
+      <textarea id="minusReason" placeholder="他又惹毛你了？"></textarea>
+      <div class="score-buttons" id="minusBtns">
+        <button class="score-btn" onclick="selectScore('minus',1,this)">-1</button>
+        <button class="score-btn" onclick="selectScore('minus',2,this)">-2</button>
+        <button class="score-btn" onclick="selectScore('minus',3,this)">-3</button>
+      </div>
+      <button class="submit-btn" id="minusSubmit" onclick="submitEntry('minus')">Record ↓</button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-card-title">加分 — 分數頻率</div>
+      <div class="freq-grid" id="plusFreq">
+        <div class="freq-row plus"><span class="freq-label">1</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+        <div class="freq-row plus"><span class="freq-label">2</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+        <div class="freq-row plus"><span class="freq-label">3</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-title">扣分 — 分數頻率</div>
+      <div class="freq-grid" id="minusFreq">
+        <div class="freq-row minus"><span class="freq-label">1</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+        <div class="freq-row minus"><span class="freq-label">2</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+        <div class="freq-row minus"><span class="freq-label">3</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="card-title">Monthly Progress</div>
+    <div class="card-subtitle">每月分數總和</div>
+    <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
+  </div>
+
+  <div class="log-card">
+    <div class="card-title">All Entries</div>
+    <div class="card-subtitle">完整紀錄</div>
+    <div class="log-list" id="logList">
+      <div class="empty-state">載入中...</div>
+    </div>
+  </div>
+
+  <div class="quote-card">
+    <div class="card-title">金句庫</div>
+    <div class="card-subtitle">他說過的那些話</div>
+    <div class="quote-input-row">
+      <input id="quoteInput" type="text" placeholder="記下他說的話…" onkeydown="if(event.key==='Enter')addQuote()">
+      <button class="quote-add-btn" id="quoteAddBtn" onclick="addQuote()">Save</button>
+    </div>
+    <div class="quotes-list" id="quotesList">
+      <div class="empty-state">還沒有金句，快去記下來</div>
+    </div>
+  </div>
+
+  <div class="footer">★ confidential ★ for your eyes only ★</div>
+</div>
+<!-- EDIT MODAL -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
+  <div class="modal">
+    <div class="modal-title">✏️ 編輯紀錄</div>
+    <div class="modal-field">
+      <label class="modal-label">原因</label>
+      <textarea id="editReason" rows="3"></textarea>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">分數</label>
+      <div class="modal-score-btns" id="editScoreBtns">
+        <button class="modal-score-btn" onclick="selectEditScore(-3)">-3</button>
+        <button class="modal-score-btn" onclick="selectEditScore(-2)">-2</button>
+        <button class="modal-score-btn" onclick="selectEditScore(-1)">-1</button>
+        <button class="modal-score-btn" onclick="selectEditScore(1)">+1</button>
+        <button class="modal-score-btn" onclick="selectEditScore(2)">+2</button>
+        <button class="modal-score-btn" onclick="selectEditScore(3)">+3</button>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">日期</label>
+      <input type="datetime-local" id="editDate">
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel" onclick="closeModal()">取消</button>
+      <button class="modal-save" id="modalSaveBtn" onclick="saveEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbyOBWzc_AnAhoQ4SNBNydpbrf-PQtyKE7BXgV9f-KVl1DAgMzSYmmXxrzynXPCQPiKY5A/exec';
+
+let entries = [], quotes = [], selectedPlus = null, selectedMinus = null;
+
+// ── Sync UI ───────────────────────────────────────────────────────────────
+function setSyncStatus(s, label) {
+  document.getElementById('syncDot').className = 'sync-dot ' + s;
+  document.getElementById('syncLabel').textContent = label;
+}
+
+// ── API ───────────────────────────────────────────────────────────────────
+async function apiGet(action) {
+  const r = await fetch(API + '?action=' + action);
+  return r.json();
+}
+async function apiPost(body) {
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
+  return r.json();
+}
+
+// ── Load ──────────────────────────────────────────────────────────────────
+async function loadData() {
+  setSyncStatus('syncing', '同步中...');
+  try {
+    const [e, q] = await Promise.all([apiGet('getEntries'), apiGet('getQuotes')]);
+    entries = (Array.isArray(e) ? e : []).filter(x => x.id).map(x => ({...x, score: Number(x.score)})).sort((a,b) => new Date(b.date)-new Date(a.date));
+    quotes  = (Array.isArray(q) ? q : []).filter(x => x.id).sort((a,b) => new Date(b.date)-new Date(a.date));
+    setSyncStatus('synced', '已同步 · ' + fmt(new Date()));
+    render(); renderQuotes();
+  } catch {
+    setSyncStatus('error', '連線失敗，請重新整理');
+    document.getElementById('logList').innerHTML = '<div class="empty-state">無法連線，請重新整理頁面</div>';
+  }
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────
+function selectScore(type, val, btn) {
+  const id = type==='plus' ? 'plusBtns' : 'minusBtns';
+  document.getElementById(id).querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  if (type==='plus') selectedPlus = val; else selectedMinus = val;
+}
+
+async function submitEntry(type) {
+  const isPlus = type === 'plus';
+  const score = isPlus ? selectedPlus : selectedMinus;
+  const reasonEl = document.getElementById(isPlus ? 'plusReason' : 'minusReason');
+  const reason = reasonEl.value.trim() || '（無說明）';
+  if (!score) { showToast('請先選擇分數 1 / 2 / 3'); return; }
+
+  const btn = document.getElementById(isPlus ? 'plusSubmit' : 'minusSubmit');
+  btn.disabled = true;
+  setSyncStatus('syncing', '儲存中...');
+
+  const entry = { action:'addEntry', id: Date.now(), type, score: isPlus ? score : -score, reason, date: new Date().toISOString() };
+  try {
+    await apiPost(entry);
+    entries.unshift({id:entry.id, type:entry.type, score:entry.score, reason:entry.reason, date:entry.date});
+    reasonEl.value = '';
+    document.getElementById(isPlus?'plusBtns':'minusBtns').querySelectorAll('.score-btn').forEach(b=>b.classList.remove('selected'));
+    if (isPlus) selectedPlus=null; else selectedMinus=null;
+    render();
+    setSyncStatus('synced', '已儲存 · ' + fmt(new Date()));
+    showToast(isPlus ? `+${score} 已記錄 ✓` : `-${score} 已記錄 ✓`);
+  } catch { setSyncStatus('error','儲存失敗'); showToast('儲存失敗，請再試一次'); }
+  btn.disabled = false;
+}
+
+async function deleteEntry(id) {
+  if (!confirm('確定要刪除這筆紀錄嗎？')) return;
+  setSyncStatus('syncing','刪除中...');
+  try {
+    await apiPost({action:'deleteEntry', id});
+    entries = entries.filter(e => String(e.id) !== String(id));
+    render(); setSyncStatus('synced','已同步 · '+fmt(new Date())); showToast('已刪除');
+  } catch { setSyncStatus('error','刪除失敗'); showToast('刪除失敗'); }
+}
+
+async function addQuote() {
+  const input = document.getElementById('quoteInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const btn = document.getElementById('quoteAddBtn');
+  btn.disabled = true;
+  setSyncStatus('syncing','儲存中...');
+  const q = {action:'addQuote', id:Date.now(), text, date:new Date().toISOString()};
+  try {
+    await apiPost(q);
+    quotes.unshift({id:q.id, text:q.text, date:q.date});
+    input.value = '';
+    renderQuotes(); setSyncStatus('synced','已儲存 · '+fmt(new Date())); showToast('金句已收錄 ✓');
+  } catch { setSyncStatus('error','儲存失敗'); showToast('儲存失敗'); }
+  btn.disabled = false;
+}
+
+async function deleteQuote(id) {
+  if (!confirm('確定要刪除這句金句嗎？')) return;
+  setSyncStatus('syncing','刪除中...');
+  try {
+    await apiPost({action:'deleteQuote', id});
+    quotes = quotes.filter(q => String(q.id) !== String(id));
+    renderQuotes(); setSyncStatus('synced','已同步 · '+fmt(new Date())); showToast('已刪除');
+  } catch { setSyncStatus('error','刪除失敗'); showToast('刪除失敗'); }
+}
+
+
+// ── Edit Modal ────────────────────────────────────────────────────────────
+let editingId = null, editScore = null;
+
+function openEdit(id) {
+  const e = entries.find(x => String(x.id) === String(id));
+  if (!e) return;
+  editingId = id;
+  editScore = e.score;
+
+  document.getElementById('editReason').value = e.reason;
+
+  // Set score buttons
+  const btns = document.getElementById('editScoreBtns').querySelectorAll('.modal-score-btn');
+  const scoreMap = [-3,-2,-1,1,2,3];
+  btns.forEach((btn, i) => {
+    btn.classList.remove('sel-plus','sel-minus');
+    if (scoreMap[i] === e.score) btn.classList.add(e.score > 0 ? 'sel-plus' : 'sel-minus');
+  });
+
+  // Set date (convert ISO to datetime-local format)
+  const d = new Date(e.date);
+  const local = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('editDate').value = local;
+
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+
+function selectEditScore(val) {
+  editScore = val;
+  const btns = document.getElementById('editScoreBtns').querySelectorAll('.modal-score-btn');
+  const scoreMap = [-3,-2,-1,1,2,3];
+  btns.forEach((btn, i) => {
+    btn.classList.remove('sel-plus','sel-minus');
+    if (scoreMap[i] === val) btn.classList.add(val > 0 ? 'sel-plus' : 'sel-minus');
+  });
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+  editingId = null; editScore = null;
+}
+
+function handleBackdropClick(e) {
+  if (e.target === document.getElementById('modalBackdrop')) closeModal();
+}
+
+async function saveEdit() {
+  if (!editingId || editScore === null) return;
+  const reason = document.getElementById('editReason').value.trim() || '（無說明）';
+  const dateVal = document.getElementById('editDate').value;
+  if (!dateVal) { showToast('請填寫日期'); return; }
+  const date = new Date(dateVal).toISOString();
+  const type = editScore > 0 ? 'plus' : 'minus';
+
+  const saveBtn = document.getElementById('modalSaveBtn');
+  saveBtn.disabled = true;
+  setSyncStatus('syncing','儲存中...');
+
+  try {
+    await apiPost({ action:'updateEntry', id: editingId, type, score: editScore, reason, date });
+    const idx = entries.findIndex(e => String(e.id) === String(editingId));
+    if (idx !== -1) entries[idx] = { ...entries[idx], type, score: editScore, reason, date };
+    entries.sort((a,b) => new Date(b.date)-new Date(a.date));
+    closeModal();
+    render();
+    setSyncStatus('synced','已儲存 · '+fmt(new Date()));
+    showToast('已更新 ✓');
+  } catch {
+    setSyncStatus('error','儲存失敗');
+    showToast('儲存失敗，請再試一次');
+  }
+  saveBtn.disabled = false;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+let chart = null;
+
+function render() {
+  // Score
+  const plus = entries.filter(e=>e.score>0).reduce((s,e)=>s+e.score,0);
+  const minus = entries.filter(e=>e.score<0).reduce((s,e)=>s+e.score,0);
+  const total = plus + minus;
+  const el = document.getElementById('totalScore');
+  el.textContent = (total>=0?'+':'')+total;
+  el.className = 'score-total-number '+(total>=0?'positive':'negative');
+  document.getElementById('totalPlus').textContent = '+'+plus;
+  document.getElementById('totalMinus').textContent = minus;
+  document.getElementById('entryCount').textContent = entries.length;
+
+  // Freq
+  const pf=[0,0,0], mf=[0,0,0];
+  entries.forEach(e => { if(e.score>0) pf[e.score-1]++; else if(e.score<0) mf[Math.abs(e.score)-1]++; });
+  ['plus','minus'].forEach(t => {
+    const f = t==='plus' ? pf : mf;
+    const max = Math.max(...f,1);
+    document.querySelectorAll(`#${t}Freq .freq-row`).forEach((row,i) => {
+      row.querySelector('.freq-bar-fill').style.width = (f[i]/max*100)+'%';
+      row.querySelector('.freq-count').textContent = f[i];
+    });
+  });
+
+  // Log
+  const list = document.getElementById('logList');
+  if (!entries.length) { list.innerHTML='<div class="empty-state">紀錄是空的，快開始評分</div>'; }
+  else {
+    list.innerHTML='';
+    entries.forEach(e => {
+      const d = new Date(e.date);
+      const ds = `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      const el2 = document.createElement('div');
+      el2.className='log-item';
+      el2.innerHTML=`<span class="log-score ${e.score>0?'plus':'minus'}">${e.score>0?'+':''}${e.score}</span><span class="log-reason">${esc(String(e.reason))}</span><span class="log-date">${ds}</span><div class="log-actions"><button class="log-edit" onclick="openEdit(${e.id})" title="編輯">✏️</button><button class="log-delete" onclick="deleteEntry(${e.id})" title="刪除">×</button></div>`;
+      list.appendChild(el2);
+    });
+  }
+
+  // Chart
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const year = new Date().getFullYear();
+  const monthly = Array(12).fill(0);
+  entries.forEach(e => { const d=new Date(e.date); if(d.getFullYear()===year) monthly[d.getMonth()]+=e.score; });
+  const ctx = document.getElementById('monthlyChart').getContext('2d');
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:months, datasets:[{ label:'每月得分', data:monthly, borderColor:'#1C1C1C', backgroundColor:'rgba(28,28,28,0.05)', borderWidth:2, pointBackgroundColor:monthly.map(v=>v>=0?'#2D6A4F':'#C0392B'), pointBorderColor:monthly.map(v=>v>=0?'#2D6A4F':'#C0392B'), pointRadius:5, pointHoverRadius:7, fill:true, tension:0.3 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1C1C1C', titleFont:{family:'Courier Prime',size:11}, bodyFont:{family:'Courier Prime',size:12}, callbacks:{label:c=>(c.raw>=0?'+':'')+c.raw+' pts'} } }, scales:{ x:{grid:{color:'rgba(0,0,0,0.06)'},ticks:{font:{family:'Courier Prime',size:11},color:'#8B7D6B'}}, y:{grid:{color:'rgba(0,0,0,0.06)'},ticks:{font:{family:'Courier Prime',size:11},color:'#8B7D6B'}} } }
+  });
+}
+
+function renderQuotes() {
+  const list = document.getElementById('quotesList');
+  if (!quotes.length) { list.innerHTML='<div class="empty-state">還沒有金句，快去記下來</div>'; return; }
+  list.innerHTML='';
+  quotes.forEach(q => {
+    const d=new Date(q.date);
+    const ds=`${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;
+    const el=document.createElement('div'); el.className='quote-item';
+    el.innerHTML=`<div style="flex:1"><div class="quote-text">"${esc(String(q.text))}"</div><div class="quote-meta">${ds}</div></div><button class="quote-delete" onclick="deleteQuote(${q.id})">×</button>`;
+    list.appendChild(el);
+  });
+}
+
+// ── Countdown ─────────────────────────────────────────────────────────────
+function updateCountdown() {
+  const diff = new Date('2026-12-31T23:59:59') - new Date();
+  if (diff<=0) { ['cdDays','cdHours','cdMins','cdSecs'].forEach(id=>document.getElementById(id).textContent='00'); return; }
+  document.getElementById('cdDays').textContent = pad(Math.floor(diff/86400000));
+  document.getElementById('cdHours').textContent = pad(Math.floor((diff%86400000)/3600000));
+  document.getElementById('cdMins').textContent = pad(Math.floor((diff%3600000)/60000));
+  document.getElementById('cdSecs').textContent = pad(Math.floor((diff%60000)/1000));
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+function pad(n) { return String(n).padStart(2,'0'); }
+function fmt(d) { return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadData();
+updateCountdown();
+setInterval(updateCountdown, 1000);
+setInterval(loadData, 60000); // auto-refresh for friends viewing
+</script>
+</body>
+</html>
+">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Boyfriend Report Card</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
