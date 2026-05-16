@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Boyfriend Report Card</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --paper: #FAF7F2;
+    --ink: #1C1C1C;
+    --faded: #8B7D6B;
+    --red: #C0392B;
+    --green: #2D6A4F;
+    --accent: #D4A853;
+    --line: #D9CFC2;
+    --pink: #E8C5B8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    background-image: 
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 27px,
+        var(--line) 27px,
+        var(--line) 28px
+      );
+    background-attachment: fixed;
+  }
+
+  .page-wrapper {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .header::before {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: var(--ink);
+    margin: 0 auto 16px;
+  }
+
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+
+  .header .subtitle {
+    font-family: 'Courier Prime', monospace;
+    font-style: italic;
+    color: var(--faded);
+    font-size: 13px;
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+
+  .header::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: var(--ink);
+    margin: 16px auto 0;
+  }
+
+  /* TOTAL SCORE HERO */
+  .score-hero {
+    background: var(--ink);
+    color: var(--cream);
+    border-radius: 4px;
+    padding: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+
+  .score-total-label {
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: 4px;
+  }
+
+  .score-total-number {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(48px, 8vw, 80px);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .score-total-number.positive { color: #7EC8A4; }
+  .score-total-number.negative { color: #E07070; }
+
+  .score-breakdown {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .score-mini {
+    text-align: center;
+  }
+
+  .score-mini-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .score-mini-val.plus { color: #7EC8A4; }
+  .score-mini-val.minus { color: #E07070; }
+
+  .score-mini-label {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-top: 2px;
+  }
+
+  /* COUNTDOWN */
+  .countdown-bar {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .countdown-label {
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--faded);
+  }
+
+  .countdown-units {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .countdown-unit {
+    text-align: center;
+  }
+
+  .countdown-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    display: block;
+  }
+
+  .countdown-unit-label {
+    font-family: 'Courier Prime', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--faded);
+    margin-top: 2px;
+  }
+
+  .countdown-sep {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    color: var(--line);
+    margin-bottom: 12px;
+  }
+
+  /* TWO COLUMN ENTRY */
+  .entry-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 600px) {
+    .entry-columns { grid-template-columns: 1fr; }
+  }
+
+  .entry-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .entry-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+  }
+
+  .entry-card.plus::before { background: var(--green); }
+  .entry-card.minus::before { background: var(--red); }
+
+  .entry-card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .entry-card-title .icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .entry-card.plus .icon { background: var(--green); }
+  .entry-card.minus .icon { background: var(--red); }
+
+  .entry-card textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--cream);
+    padding: 10px 12px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    resize: vertical;
+    min-height: 72px;
+    outline: none;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+    line-height: 28px;
+  }
+
+  .entry-card textarea:focus { border-color: var(--faded); }
+
+  .score-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .score-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1.5px solid var(--line);
+    border-radius: 3px;
+    background: transparent;
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--ink);
+  }
+
+  .entry-card.plus .score-btn:hover,
+  .entry-card.plus .score-btn.selected {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+  }
+
+  .entry-card.minus .score-btn:hover,
+  .entry-card.minus .score-btn.selected {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 3px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .entry-card.plus .submit-btn {
+    background: var(--green);
+    color: white;
+  }
+
+  .entry-card.plus .submit-btn:hover { opacity: 0.85; }
+
+  .entry-card.minus .submit-btn {
+    background: var(--red);
+    color: white;
+  }
+
+  .entry-card.minus .submit-btn:hover { opacity: 0.85; }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 600px) {
+    .stats-row { grid-template-columns: 1fr; }
+  }
+
+  .stat-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 20px 24px;
+  }
+
+  .stat-card-title {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--faded);
+    margin-bottom: 12px;
+  }
+
+  .freq-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .freq-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .freq-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    width: 20px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  .freq-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .freq-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .freq-row.plus .freq-bar-fill { background: var(--green); }
+  .freq-row.minus .freq-bar-fill { background: var(--red); }
+
+  .freq-count {
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    color: var(--faded);
+    min-width: 24px;
+    text-align: right;
+  }
+
+  /* CHART */
+  .chart-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .card-subtitle {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--faded);
+    margin-bottom: 20px;
+  }
+
+  .chart-container {
+    position: relative;
+    height: 200px;
+  }
+
+  /* QUOTE BANK */
+  .quote-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .quote-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .quote-input-row input {
+    flex: 1;
+    min-width: 200px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--cream);
+    padding: 10px 14px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .quote-input-row input:focus { border-color: var(--faded); }
+
+  .quote-input-row input::placeholder { color: var(--faded); }
+
+  .quote-add-btn {
+    padding: 10px 20px;
+    background: var(--ink);
+    color: var(--cream);
+    border: none;
+    border-radius: 3px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+
+  .quote-add-btn:hover { opacity: 0.75; }
+
+  .quotes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .quote-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--cream);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 3px 3px 0;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .quote-text {
+    flex: 1;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  .quote-meta {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    color: var(--faded);
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .quote-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--faded);
+    font-size: 16px;
+    padding: 0 2px;
+    transition: color 0.2s;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .quote-delete:hover { color: var(--red); }
+
+  /* LOG */
+  .log-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-track { background: transparent; }
+  .log-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+
+  .log-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 3px;
+    background: var(--cream);
+    animation: fadeIn 0.3s ease;
+  }
+
+  .log-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .log-score.plus { color: var(--green); }
+  .log-score.minus { color: var(--red); }
+
+  .log-reason {
+    flex: 1;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .log-date {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    color: var(--faded);
+    letter-spacing: 1px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .log-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--faded);
+    font-size: 14px;
+    padding: 0;
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .log-delete:hover { color: var(--red); }
+
+  .empty-state {
+    text-align: center;
+    padding: 32px;
+    font-family: 'Courier Prime', monospace;
+    font-style: italic;
+    color: var(--faded);
+    font-size: 13px;
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 20px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--faded);
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    background: var(--ink);
+    color: var(--cream);
+    padding: 12px 20px;
+    border-radius: 3px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <header class="header">
+    <h1>The Boyfriend<br>Report Card</h1>
+    <p class="subtitle">an ongoing evaluation — est. 2026</p>
+  </header>
+
+  <!-- SCORE HERO -->
+  <div class="score-hero">
+    <div>
+      <div class="score-total-label">Total Score</div>
+      <div class="score-total-number" id="totalScore">0</div>
+    </div>
+    <div class="score-breakdown">
+      <div class="score-mini">
+        <div class="score-mini-val plus" id="totalPlus">+0</div>
+        <div class="score-mini-label">Points Earned</div>
+      </div>
+      <div class="score-mini">
+        <div class="score-mini-val minus" id="totalMinus">-0</div>
+        <div class="score-mini-label">Points Lost</div>
+      </div>
+      <div class="score-mini">
+        <div class="score-mini-val" style="color: var(--accent);" id="entryCount">0</div>
+        <div class="score-mini-label">Entries</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COUNTDOWN -->
+  <div class="countdown-bar">
+    <div class="countdown-label">⏳ Countdown to Dec 31, 2026</div>
+    <div class="countdown-units">
+      <div class="countdown-unit">
+        <span class="countdown-num" id="cdDays">—</span>
+        <div class="countdown-unit-label">Days</div>
+      </div>
+      <div class="countdown-sep">:</div>
+      <div class="countdown-unit">
+        <span class="countdown-num" id="cdHours">—</span>
+        <div class="countdown-unit-label">Hours</div>
+      </div>
+      <div class="countdown-sep">:</div>
+      <div class="countdown-unit">
+        <span class="countdown-num" id="cdMins">—</span>
+        <div class="countdown-unit-label">Mins</div>
+      </div>
+      <div class="countdown-sep">:</div>
+      <div class="countdown-unit">
+        <span class="countdown-num" id="cdSecs">—</span>
+        <div class="countdown-unit-label">Secs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENTRY COLUMNS -->
+  <div class="entry-columns">
+    <div class="entry-card plus">
+      <div class="entry-card-title">
+        <div class="icon">+</div>
+        加分紀錄
+      </div>
+      <textarea id="plusReason" placeholder="他做了什麼好事？"></textarea>
+      <div class="score-buttons" id="plusBtns">
+        <button class="score-btn" onclick="selectScore('plus', 1, this)">+1</button>
+        <button class="score-btn" onclick="selectScore('plus', 2, this)">+2</button>
+        <button class="score-btn" onclick="selectScore('plus', 3, this)">+3</button>
+      </div>
+      <button class="submit-btn" onclick="submitEntry('plus')">Record ↑</button>
+    </div>
+
+    <div class="entry-card minus">
+      <div class="entry-card-title">
+        <div class="icon">−</div>
+        扣分紀錄
+      </div>
+      <textarea id="minusReason" placeholder="他又惹毛你了？"></textarea>
+      <div class="score-buttons" id="minusBtns">
+        <button class="score-btn" onclick="selectScore('minus', 1, this)">-1</button>
+        <button class="score-btn" onclick="selectScore('minus', 2, this)">-2</button>
+        <button class="score-btn" onclick="selectScore('minus', 3, this)">-3</button>
+      </div>
+      <button class="submit-btn" onclick="submitEntry('minus')">Record ↓</button>
+    </div>
+  </div>
+
+  <!-- FREQUENCY STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-card-title">加分 — 分數頻率</div>
+      <div class="freq-grid" id="plusFreq">
+        <div class="freq-row plus"><span class="freq-label">1</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+        <div class="freq-row plus"><span class="freq-label">2</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+        <div class="freq-row plus"><span class="freq-label">3</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-title">扣分 — 分數頻率</div>
+      <div class="freq-grid" id="minusFreq">
+        <div class="freq-row minus"><span class="freq-label">1</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+        <div class="freq-row minus"><span class="freq-label">2</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+        <div class="freq-row minus"><span class="freq-label">3</span><div class="freq-bar-track"><div class="freq-bar-fill" style="width:0%"></div></div><span class="freq-count">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MONTHLY CHART -->
+  <div class="chart-card">
+    <div class="card-title">Monthly Progress</div>
+    <div class="card-subtitle">每月分數總和</div>
+    <div class="chart-container">
+      <canvas id="monthlyChart"></canvas>
+    </div>
+  </div>
+
+  <!-- QUOTE BANK -->
+  <div class="quote-card">
+    <div class="card-title">金句庫</div>
+    <div class="card-subtitle">他說過的那些話</div>
+    <div class="quote-input-row">
+      <input id="quoteInput" type="text" placeholder="記下他說的話…" onkeydown="if(event.key==='Enter') addQuote()">
+      <button class="quote-add-btn" onclick="addQuote()">Save</button>
+    </div>
+    <div class="quotes-list" id="quotesList">
+      <div class="empty-state" id="quotesEmpty">還沒有金句，快去記下來</div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="log-card">
+    <div class="card-title">All Entries</div>
+    <div class="card-subtitle">完整紀錄</div>
+    <div class="log-list" id="logList">
+      <div class="empty-state" id="logEmpty">紀錄是空的，快開始評分</div>
+    </div>
+  </div>
+
+  <div class="footer">★ confidential ★ for your eyes only ★</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let state = {
+  entries: [],
+  quotes: [],
+  selectedPlus: null,
+  selectedMinus: null
+};
+
+// ── Persist ─────────────────────────────────────────────────────────────
+function save() {
+  try {
+    localStorage.setItem('bfrc', JSON.stringify({ entries: state.entries, quotes: state.quotes }));
+  } catch(e) {}
+}
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('bfrc') || '{}');
+    state.entries = d.entries || [];
+    state.quotes = d.quotes || [];
+  } catch(e) {}
+}
+
+// ── Countdown ────────────────────────────────────────────────────────────
+function updateCountdown() {
+  const target = new Date('2026-12-31T23:59:59');
+  const now = new Date();
+  const diff = target - now;
+  if (diff <= 0) {
+    ['cdDays','cdHours','cdMins','cdSecs'].forEach(id => document.getElementById(id).textContent = '00');
+    return;
+  }
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  document.getElementById('cdDays').textContent = String(d).padStart(2,'0');
+  document.getElementById('cdHours').textContent = String(h).padStart(2,'0');
+  document.getElementById('cdMins').textContent = String(m).padStart(2,'0');
+  document.getElementById('cdSecs').textContent = String(s).padStart(2,'0');
+}
+
+// ── Score Selection ──────────────────────────────────────────────────────
+function selectScore(type, val, btn) {
+  const container = type === 'plus' ? document.getElementById('plusBtns') : document.getElementById('minusBtns');
+  container.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  if (type === 'plus') state.selectedPlus = val;
+  else state.selectedMinus = val;
+}
+
+// ── Submit Entry ──────────────────────────────────────────────────────────
+function submitEntry(type) {
+  const isPlus = type === 'plus';
+  const score = isPlus ? state.selectedPlus : state.selectedMinus;
+  const reason = document.getElementById(isPlus ? 'plusReason' : 'minusReason').value.trim();
+
+  if (!score) { showToast('請先選擇分數 1 / 2 / 3'); return; }
+
+  const entry = {
+    id: Date.now(),
+    type,
+    score: isPlus ? score : -score,
+    reason: reason || (isPlus ? '（無說明）' : '（無說明）'),
+    date: new Date().toISOString()
+  };
+
+  state.entries.unshift(entry);
+  save();
+
+  // reset
+  document.getElementById(isPlus ? 'plusReason' : 'minusReason').value = '';
+  const container = document.getElementById(isPlus ? 'plusBtns' : 'minusBtns');
+  container.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
+  if (isPlus) state.selectedPlus = null; else state.selectedMinus = null;
+
+  render();
+  showToast(isPlus ? `+${score} 已記錄 ✓` : `-${score} 已記錄 ✓`);
+}
+
+// ── Quote ─────────────────────────────────────────────────────────────────
+function addQuote() {
+  const input = document.getElementById('quoteInput');
+  const text = input.value.trim();
+  if (!text) return;
+  state.quotes.unshift({ id: Date.now(), text, date: new Date().toISOString() });
+  input.value = '';
+  save();
+  renderQuotes();
+  showToast('金句已收錄 ✓');
+}
+
+function deleteQuote(id) {
+  state.quotes = state.quotes.filter(q => q.id !== id);
+  save();
+  renderQuotes();
+}
+
+function deleteEntry(id) {
+  state.entries = state.entries.filter(e => e.id !== id);
+  save();
+  render();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+let chartInstance = null;
+
+function render() {
+  renderScore();
+  renderFreq();
+  renderLog();
+  renderChart();
+}
+
+function renderScore() {
+  const plus = state.entries.filter(e => e.score > 0).reduce((s,e) => s + e.score, 0);
+  const minus = state.entries.filter(e => e.score < 0).reduce((s,e) => s + e.score, 0);
+  const total = plus + minus;
+
+  const el = document.getElementById('totalScore');
+  el.textContent = (total >= 0 ? '+' : '') + total;
+  el.className = 'score-total-number ' + (total >= 0 ? 'positive' : 'negative');
+  document.getElementById('totalPlus').textContent = '+' + plus;
+  document.getElementById('totalMinus').textContent = minus;
+  document.getElementById('entryCount').textContent = state.entries.length;
+}
+
+function renderFreq() {
+  const plusFreqs = [0,0,0];
+  const minusFreqs = [0,0,0];
+  state.entries.forEach(e => {
+    if (e.score > 0) plusFreqs[e.score - 1]++;
+    else if (e.score < 0) minusFreqs[Math.abs(e.score) - 1]++;
+  });
+
+  ['plus', 'minus'].forEach(type => {
+    const freqs = type === 'plus' ? plusFreqs : minusFreqs;
+    const max = Math.max(...freqs, 1);
+    const rows = document.querySelectorAll(`#${type}Freq .freq-row`);
+    rows.forEach((row, i) => {
+      row.querySelector('.freq-bar-fill').style.width = (freqs[i] / max * 100) + '%';
+      row.querySelector('.freq-count').textContent = freqs[i];
+    });
+  });
+}
+
+function renderLog() {
+  const list = document.getElementById('logList');
+  const empty = document.getElementById('logEmpty');
+  if (state.entries.length === 0) {
+    empty.style.display = '';
+    list.innerHTML = '';
+    list.appendChild(empty);
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = '';
+  state.entries.forEach(e => {
+    const d = new Date(e.date);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const item = document.createElement('div');
+    item.className = 'log-item';
+    item.innerHTML = `
+      <span class="log-score ${e.score > 0 ? 'plus' : 'minus'}">${e.score > 0 ? '+' : ''}${e.score}</span>
+      <span class="log-reason">${escHtml(e.reason)}</span>
+      <span class="log-date">${dateStr}</span>
+      <button class="log-delete" onclick="deleteEntry(${e.id})" title="刪除">×</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function renderQuotes() {
+  const list = document.getElementById('quotesList');
+  const empty = document.getElementById('quotesEmpty');
+  if (state.quotes.length === 0) {
+    empty.style.display = '';
+    list.innerHTML = '';
+    list.appendChild(empty);
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = '';
+  state.quotes.forEach(q => {
+    const d = new Date(q.date);
+    const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+    const item = document.createElement('div');
+    item.className = 'quote-item';
+    item.innerHTML = `
+      <div style="flex:1">
+        <div class="quote-text">"${escHtml(q.text)}"</div>
+        <div class="quote-meta">${dateStr}</div>
+      </div>
+      <button class="quote-delete" onclick="deleteQuote(${q.id})" title="刪除">×</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function renderChart() {
+  const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const year = new Date().getFullYear();
+  const monthly = Array(12).fill(0);
+
+  state.entries.forEach(e => {
+    const d = new Date(e.date);
+    if (d.getFullYear() === year) {
+      monthly[d.getMonth()] += e.score;
+    }
+  });
+
+  const ctx = document.getElementById('monthlyChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: monthLabels,
+      datasets: [{
+        label: '每月得分',
+        data: monthly,
+        borderColor: '#1C1C1C',
+        backgroundColor: 'rgba(28,28,28,0.05)',
+        borderWidth: 2,
+        pointBackgroundColor: monthly.map(v => v >= 0 ? '#2D6A4F' : '#C0392B'),
+        pointBorderColor: monthly.map(v => v >= 0 ? '#2D6A4F' : '#C0392B'),
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1C1C1C',
+          titleFont: { family: 'Courier Prime', size: 11 },
+          bodyFont: { family: 'Courier Prime', size: 12 },
+          callbacks: {
+            label: ctx => (ctx.raw >= 0 ? '+' : '') + ctx.raw + ' pts'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: { font: { family: 'Courier Prime', size: 11 }, color: '#8B7D6B' }
+        },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: { font: { family: 'Courier Prime', size: 11 }, color: '#8B7D6B' }
+        }
+      }
+    }
+  });
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+load();
+render();
+renderQuotes();
+updateCountdown();
+setInterval(updateCountdown, 1000);
+</script>
+</body>
+</html>
