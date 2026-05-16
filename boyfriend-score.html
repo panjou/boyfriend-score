@@ -284,6 +284,26 @@
 
   <div class="footer">★ confidential ★ for your eyes only ★</div>
 </div>
+
+<!-- QUOTE EDIT MODAL -->
+<div class="modal-backdrop" id="quoteModalBackdrop" onclick="handleQuoteBackdropClick(event)">
+  <div class="modal" style="border-top-color: var(--accent)">
+    <div class="modal-title">✏️ 編輯金句</div>
+    <div class="modal-field">
+      <label class="modal-label">金句內容</label>
+      <textarea id="editQuoteText" rows="3"></textarea>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">日期</label>
+      <input type="date" id="editQuoteDate">
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel" onclick="closeQuoteModal()">取消</button>
+      <button class="modal-save" id="quoteModalSaveBtn" onclick="saveQuoteEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT MODAL -->
 <div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
   <div class="modal">
@@ -342,8 +362,18 @@ async function loadData() {
   setSyncStatus('syncing', '同步中...');
   try {
     const [e, q] = await Promise.all([apiGet('getEntries'), apiGet('getQuotes')]);
-    entries = (Array.isArray(e) ? e : []).filter(x => x.id).map(x => ({...x, score: Number(x.score)})).sort((a,b) => new Date(b.date)-new Date(a.date));
-    quotes  = (Array.isArray(q) ? q : []).filter(x => x.id).sort((a,b) => new Date(b.date)-new Date(a.date));
+    entries = (Array.isArray(e) ? e : []).filter(x => x.id || x.ID).map(x => ({
+      id:     x.id     || x.ID     || x['id'],
+      type:   x.type   || x.TYPE   || x['type']   || (Number(x.score||x.SCORE) >= 0 ? 'plus' : 'minus'),
+      score:  Number(x.score || x.SCORE || x['score'] || 0),
+      reason: x.reason || x.REASON || x['reason'] || x['Reason'] || '（無說明）',
+      date:   x.date   || x.DATE   || x['date']   || x['Date']   || new Date().toISOString()
+    })).filter(x => x.id).sort((a,b) => new Date(b.date)-new Date(a.date));
+    quotes  = (Array.isArray(q) ? q : []).filter(x => x.id || x.ID).map(x => ({
+      id:   x.id   || x.ID   || x['id'],
+      text: x.text || x.TEXT || x['text'] || x['Text'] || Object.values(x)[1] || '',
+      date: x.date || x.DATE || x['date'] || x['Date'] || Object.values(x)[2] || new Date().toISOString()
+    })).filter(x => x.id).sort((a,b) => new Date(b.date)-new Date(a.date));
     setSyncStatus('synced', '已同步 · ' + fmt(new Date()));
     render(); renderQuotes();
   } catch {
@@ -561,9 +591,58 @@ function renderQuotes() {
     const d=new Date(q.date);
     const ds=`${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;
     const el=document.createElement('div'); el.className='quote-item';
-    el.innerHTML=`<div style="flex:1"><div class="quote-text">"${esc(String(q.text))}"</div><div class="quote-meta">${ds}</div></div><button class="quote-delete" onclick="deleteQuote(${q.id})">×</button>`;
+    el.innerHTML=`<div style="flex:1"><div class="quote-text">"${esc(String(q.text))}"</div><div class="quote-meta">${ds}</div></div><div class="log-actions"><button class="log-edit" onclick="openQuoteEdit(${q.id})" title="編輯">✏️</button><button class="quote-delete" onclick="deleteQuote(${q.id})" title="刪除">×</button></div>`;
     list.appendChild(el);
   });
+}
+
+
+// ── Quote Edit Modal ──────────────────────────────────────────────────────
+let editingQuoteId = null;
+
+function openQuoteEdit(id) {
+  const q = quotes.find(x => String(x.id) === String(id));
+  if (!q) return;
+  editingQuoteId = id;
+  document.getElementById('editQuoteText').value = q.text;
+  const d = new Date(q.date);
+  document.getElementById('editQuoteDate').value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  document.getElementById('quoteModalBackdrop').classList.add('open');
+}
+
+function closeQuoteModal() {
+  document.getElementById('quoteModalBackdrop').classList.remove('open');
+  editingQuoteId = null;
+}
+
+function handleQuoteBackdropClick(e) {
+  if (e.target === document.getElementById('quoteModalBackdrop')) closeQuoteModal();
+}
+
+async function saveQuoteEdit() {
+  if (!editingQuoteId) return;
+  const text = document.getElementById('editQuoteText').value.trim();
+  const dateVal = document.getElementById('editQuoteDate').value;
+  if (!text) { showToast('請填寫金句內容'); return; }
+  if (!dateVal) { showToast('請填寫日期'); return; }
+  const date = new Date(dateVal).toISOString();
+
+  const btn = document.getElementById('quoteModalSaveBtn');
+  btn.disabled = true;
+  setSyncStatus('syncing','儲存中...');
+  try {
+    await apiPost({ action:'updateQuote', id: editingQuoteId, text, date });
+    const idx = quotes.findIndex(q => String(q.id) === String(editingQuoteId));
+    if (idx !== -1) quotes[idx] = { ...quotes[idx], text, date };
+    closeQuoteModal();
+    renderQuotes();
+    setSyncStatus('synced','已儲存 · '+fmt(new Date()));
+    showToast('金句已更新 ✓');
+  } catch {
+    setSyncStatus('error','儲存失敗');
+    showToast('儲存失敗，請再試一次');
+  }
+  btn.disabled = false;
 }
 
 // ── Countdown ─────────────────────────────────────────────────────────────
